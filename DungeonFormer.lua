@@ -182,8 +182,8 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("WHO_LIST_UPDATE")
 eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 
-eventFrame:SetScript("OnEvent", function(self, event, ...)
-    if event == "ADDON_LOADED" and ... == "DungeonFormer" then
+eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
+    if event == "ADDON_LOADED" and arg1 == "DungeonFormer" then
         DebugPrint("ADDON_LOADED event received for DungeonFormer.")
         -- Load saved variables. DungeonFormerBlacklist is our global table defined in the .toc file.
         -- The game client will automatically load it. We just need to ensure it's a table if it's the first time.
@@ -241,7 +241,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         DebugPrint("WHO_LIST_UPDATE event handled.")
         DungeonFormer:ProcessWhoList()
     elseif event == "CHAT_MSG_WHISPER" then
-        local message, author = ...
+        local message, author = arg1, arg2
         if playerDB[author] and playerDB[author].messaged then
             DungeonFormer:Print("|cff00ff00Reply from " .. author .. ":|r " .. message)
             playerDB[author].replied = true
