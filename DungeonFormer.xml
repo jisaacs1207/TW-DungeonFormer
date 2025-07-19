@@ -49,7 +49,11 @@
             </Frame>
 
             <!-- Class Filter Label -->
-            <FontString name="$parentClassFilterLabel" inherits="GameFontNormalSmall" text="Classes (comma separated):"></FontString>
+            <FontString name="$parentClassFilterLabel" inherits="GameFontNormalSmall" text="Classes (comma separated):">
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" relativeTo="DungeonFormerClassFilter" relativePoint="TOPLEFT" x="0" y="5"/>
+                </Anchors>
+            </FontString>
 
             <!-- Class Filter EditBox -->
             <EditBox name="DungeonFormerClassFilter" inherits="InputBoxTemplate" autoFocus="false">
@@ -75,19 +79,19 @@
             <!-- Results ScrollFrame -->
             <ScrollFrame name="DungeonFormerScrollFrame" inherits="UIPanelScrollFrameTemplate">
                 <Size>
-                    <AbsDimension x="380" y="300"/>
+                    <AbsDimension x="360" y="300"/>
                 </Size>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="DungeonFormerFrame" relativePoint="TOPLEFT">
                         <Offset>
-                            <AbsDimension x="10" y="-110"/>
+                            <AbsDimension x="20" y="-110"/>
                         </Offset>
                     </Anchor>
                 </Anchors>
                 <ScrollChild>
                     <Frame name="DungeonFormerScrollChild">
                         <Size>
-                            <AbsDimension x="360" y="300"/>
+                            <AbsDimension x="340" y="300"/>
                         </Size>
                     </Frame>
                 </ScrollChild>

@@ -216,47 +216,69 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         ui.autoInviteCheck = DungeonFormerAutoInviteCheck
         ui.verboseCheck = DungeonFormerVerboseCheck
 
-        -- Populate the dropdown
-        DungeonFormer:PopulateDungeonDropdown()
-        DebugPrint("Populated dungeon dropdown.")
-
-        -- Sync checkboxes with config
-        ui.autoInviteCheck:SetChecked(config.autoInvite)
-        ui.verboseCheck:SetChecked(config.verbose)
-
-        ui.autoInviteCheck:SetScript("OnClick", function(self)
+        -- Strict WoW 1.12/Turtle WoW UI initialization
+function DungeonFormer_OnLoad()
+    DebugPrint("DungeonFormer_OnLoad called")
+    -- Dropdown setup
+    if DungeonFormerDungeonDropdown then
+        UIDropDownMenu_Initialize(DungeonFormerDungeonDropdown, DungeonFormer_Dropdown_Initialize)
+        UIDropDownMenu_SetWidth(DungeonFormerDungeonDropdown, 220)
+        UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, 1)
+        DebugPrint("Dropdown initialized on load.")
+    else
+        DebugPrint("ERROR: DungeonFormerDungeonDropdown missing!")
+    end
+    -- Checkboxes
+    if DungeonFormerAutoInviteCheck then
+        DungeonFormerAutoInviteCheck:SetChecked(config.autoInvite)
+        DungeonFormerAutoInviteCheck:SetScript("OnClick", function(self)
             config.autoInvite = self:GetChecked()
             DungeonFormer:Print("Auto-invite is now " .. (config.autoInvite and "ON" or "OFF"))
             DebugPrint("Auto-invite checkbox clicked: " .. tostring(config.autoInvite))
         end)
-
-        ui.verboseCheck:SetScript("OnClick", function(self)
+    end
+    if DungeonFormerVerboseCheck then
+        DungeonFormerVerboseCheck:SetChecked(config.verbose)
+        DungeonFormerVerboseCheck:SetScript("OnClick", function(self)
             config.verbose = self:GetChecked()
             DungeonFormer:Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
             DebugPrint("Verbose checkbox clicked: " .. tostring(config.verbose))
         end)
+    end
+    -- Scan button
+    if DungeonFormerScanButton then
+        DungeonFormerScanButton:SetScript("OnClick", function()
+            local id = UIDropDownMenu_GetSelectedID(DungeonFormerDungeonDropdown)
+            if not id then
+                DungeonFormer:Print("Please select a dungeon first.")
+                return
+            end
+            local classes = DungeonFormerClassFilter and DungeonFormerClassFilter:GetText() or ""
+            DungeonFormer:StartScan(id, classes)
+            DungeonFormerFrame:Show()
+            DungeonFormerScrollFrame:Show()
+            DungeonFormerScrollChild:Show()
+            DebugPrint("Scan button clicked. Scan started for dungeon id: " .. tostring(id) .. ", classes: " .. classes)
+        end)
+        DebugPrint("Scan button handler set.")
+    end
+    DebugPrint("DungeonFormer_OnLoad complete.")
+end
 
-        if DungeonFormerScanButton then
-            DungeonFormerScanButton:SetScript("OnClick", function()
-                local dungeonIndex = selectedDungeonIndex
-                if not dungeonIndex then
-                    DungeonFormer:Print("Please select a dungeon first.")
-                    return
-                end
-                local classes = DungeonFormerClassFilter and DungeonFormerClassFilter:GetText() or ""
-                DungeonFormer:StartScan(dungeonIndex, classes)
-                DungeonFormerFrame:Show()
-                DungeonFormerScrollFrame:Show()
-                DungeonFormerScrollChild:Show()
-                DebugPrint("Scan button clicked. Scan started for dungeon index: " .. tostring(dungeonIndex) .. ", classes: " .. classes)
-            end)
-            DebugPrint("Scan button handler set.")
-        else
-            DebugPrint("ERROR: DungeonFormerScanButton missing!")
+function DungeonFormer_Dropdown_Initialize()
+    for i, dungeon in ipairs(Dungeons) do
+        local info = {}
+        info.text = dungeon.name
+        info.value = i
+        info.func = function()
+            UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, i)
+            selectedDungeonIndex = i
+            DebugPrint("Dungeon selected: " .. dungeon.name)
         end
+        UIDropDownMenu_AddButton(info)
+    end
+end
 
-        DungeonFormer:Print("Addon loaded. Type /df to toggle the UI.")
-        DebugPrint("Addon loaded.")
     elseif event == "WHO_LIST_UPDATE" then
         DebugPrint("WHO_LIST_UPDATE event handled.")
         DungeonFormer:ProcessWhoList()
