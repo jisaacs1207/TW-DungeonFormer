@@ -200,14 +200,25 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     if event == "ADDON_LOADED" and arg1 == "DungeonFormer" then
         DebugPrint("ADDON_LOADED event received for DungeonFormer.")
         -- Load saved variables. DungeonFormerBlacklist is our global table defined in the .toc file.
-        -- The game client will automatically load it. We just need to ensure it's a table if it's the first time.
         if DungeonFormerBlacklist == nil then
             DebugPrint("Blacklist not found, creating new table.")
             DungeonFormerBlacklist = {}
         end
 
-        -- Initialize UI elements
-        -- Note to linter: The following globals are frames and widgets defined in DungeonFormer.xml
+        -- Load tab switching logic
+        if DungeonFormerTabsLoaded == nil then
+            DebugPrint("Loading DungeonFormerTabs.lua for tab logic.")
+            RunScript([[LoadAddOn("DungeonFormerTabs")]])
+            DungeonFormerTabsLoaded = true
+        end
+        if DungeonFormer_OnLoadTabs then
+            DungeonFormer_OnLoadTabs()
+            DebugPrint("Tabs initialized with DungeonFormer_OnLoadTabs().")
+        else
+            DebugPrint("ERROR: DungeonFormer_OnLoadTabs missing!")
+        end
+
+        -- Initialize UI elements for new tabbed layout
         ui.frame = DungeonFormerFrame
         ui.dungeonDropdown = DungeonFormerDungeonDropdown
         ui.classFilter = DungeonFormerClassFilter
@@ -216,7 +227,48 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         ui.autoInviteCheck = DungeonFormerAutoInviteCheck
         ui.verboseCheck = DungeonFormerVerboseCheck
 
-        -- Strict WoW 1.12/Turtle WoW UI initialization
+        -- Dropdown setup
+        if DungeonFormerDungeonDropdown then
+            UIDropDownMenu_Initialize(DungeonFormerDungeonDropdown, DungeonFormer_Dropdown_Initialize)
+            UIDropDownMenu_SetWidth(DungeonFormerDungeonDropdown, 220)
+            UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, 1)
+            UIDropDownMenu_SetText("Select Dungeon", DungeonFormerDungeonDropdown)
+            DebugPrint("Dropdown initialized on load.")
+        else
+            DebugPrint("ERROR: DungeonFormerDungeonDropdown missing!")
+        end
+        -- Checkboxes (Settings Tab)
+        if DungeonFormerAutoInviteCheck then
+            DungeonFormerAutoInviteCheck:SetChecked(config.autoInvite)
+            DungeonFormerAutoInviteCheck:SetScript("OnClick", function(self)
+                config.autoInvite = self:GetChecked()
+                DungeonFormer:Print("Auto-invite is now " .. (config.autoInvite and "ON" or "OFF"))
+                DebugPrint("Auto-invite checkbox clicked: " .. tostring(config.autoInvite))
+            end)
+        end
+        if DungeonFormerVerboseCheck then
+            DungeonFormerVerboseCheck:SetChecked(config.verbose)
+            DungeonFormerVerboseCheck:SetScript("OnClick", function(self)
+                config.verbose = self:GetChecked()
+                DungeonFormer:Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
+                DebugPrint("Verbose checkbox clicked: " .. tostring(config.verbose))
+            end)
+        end
+        -- Scan button (Scan Tab)
+        if DungeonFormerScanButton then
+            DungeonFormerScanButton:SetScript("OnClick", function()
+                local selectedID = UIDropDownMenu_GetSelectedID(DungeonFormerDungeonDropdown)
+                local classFilter = DungeonFormerClassFilter:GetText()
+                DungeonFormer:StartScan(selectedID, classFilter)
+            end)
+        end
+    elseif event == "WHO_LIST_UPDATE" then
+        DungeonFormer:ProcessWhoList()
+    elseif event == "CHAT_MSG_WHISPER" then
+        -- Optionally handle whispers for reply tracking
+    end
+end)
+
 function DungeonFormer_OnLoad()
     DebugPrint("DungeonFormer_OnLoad called")
     -- Dropdown setup
@@ -280,17 +332,6 @@ function DungeonFormer_Dropdown_Initialize()
     end
 end
 
-    elseif event == "WHO_LIST_UPDATE" then
-        DebugPrint("WHO_LIST_UPDATE event handled.")
-        DungeonFormer:ProcessWhoList()
-    elseif event == "CHAT_MSG_WHISPER" then
-        local message, author = arg1, arg2
-        if playerDB[author] and playerDB[author].messaged then
-            DungeonFormer:Print("|cff00ff00Reply from " .. author .. ":|r " .. message)
-            playerDB[author].replied = true
-        end
-    end
-end)
 
 
 
