@@ -270,6 +270,16 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
 end)
 
 function DungeonFormer_OnLoad()
+    DebugPrint("DungeonFormer_OnLoad called. Checking UI frame globals...")
+    DebugPrint("DungeonFormerFrame: " .. tostring(DungeonFormerFrame))
+    DebugPrint("DungeonFormerScrollFrame: " .. tostring(DungeonFormerScrollFrame))
+    DebugPrint("DungeonFormerScrollChild: " .. tostring(DungeonFormerScrollChild))
+    DebugPrint("DungeonFormerDungeonDropdown: " .. tostring(DungeonFormerDungeonDropdown))
+    DebugPrint("DungeonFormerClassFilter: " .. tostring(DungeonFormerClassFilter))
+    DebugPrint("DungeonFormerScanButton: " .. tostring(DungeonFormerScanButton))
+    DebugPrint("DungeonFormerAutoInviteCheck: " .. tostring(DungeonFormerAutoInviteCheck))
+    DebugPrint("DungeonFormerVerboseCheck: " .. tostring(DungeonFormerVerboseCheck))
+    DebugPrint("--- End UI frame existence check ---")
     DebugPrint("DungeonFormer_OnLoad called")
     -- Dropdown setup
     if DungeonFormerDungeonDropdown then
@@ -398,10 +408,32 @@ function SlashCmdList.DUNGEONFORMER(text, editBox)
     rest = string.lower(rest)
 
     if command == "" then
+        -- Try to show the UI; if frames are missing, attempt to reinitialize
         DungeonFormer:ToggleUI()
-        DungeonFormerFrame:Show()
-        if DungeonFormerScrollFrame then DungeonFormerScrollFrame:Show() end
-        if DungeonFormerScrollChild then DungeonFormerScrollChild:Show() end
+        local uiReady = DungeonFormerFrame and DungeonFormerFrame.Show and DungeonFormerScrollFrame and DungeonFormerScrollFrame.Show and DungeonFormerScrollChild and DungeonFormerScrollChild.Show
+        if not uiReady then
+            DebugPrint("UI frames missing after ToggleUI. Attempting to reinitialize UI via DungeonFormer_OnLoad().")
+            if DungeonFormer_OnLoad then DungeonFormer_OnLoad() end
+        end
+        -- Try again to show frames after reinit
+        if DungeonFormerFrame and DungeonFormerFrame.Show then
+            DungeonFormerFrame:Show()
+        else
+            DebugPrint("ERROR: DungeonFormerFrame is still nil or missing Show method after reinit!")
+        end
+        if DungeonFormerScrollFrame and DungeonFormerScrollFrame.Show then
+            DungeonFormerScrollFrame:Show()
+        else
+            DebugPrint("ERROR: DungeonFormerScrollFrame is still nil or missing Show method after reinit!")
+        end
+        if DungeonFormerScrollChild and DungeonFormerScrollChild.Show then
+            DungeonFormerScrollChild:Show()
+        else
+            DebugPrint("ERROR: DungeonFormerScrollChild is still nil or missing Show method after reinit!")
+            -- Optionally, create a minimal fallback frame here
+        end
+        -- The command proceeds regardless of UI frame state
+
     elseif command == "scan" then
         local dungeonIndex = ""
         local classes = ""
