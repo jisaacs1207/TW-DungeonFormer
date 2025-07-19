@@ -1,7 +1,7 @@
 --- DungeonFormer Main File ---
 
 -- Addon namespace
--- luacheck: globals UIParent DEFAULT_CHAT_FRAME CreateFrame SendWho GetNumWhoResults GetWhoInfo SendChatMessage InviteUnit SlashCmdList UIDropDownMenu_SetText UIDropDownMenu_AddButton Print DungeonFormerBlacklist DungeonFormerFrame DungeonFormerDungeonDropdown DungeonFormerClassFilter DungeonFormerScanButton DungeonFormerScrollFrame DungeonFormerScrollChild DungeonFormerAutoInviteCheck DungeonFormerVerboseCheck DungeonFormerFrameCloseButton tonumber ipairs pairs string table
+-- luacheck: globals UIParent DEFAULT_CHAT_FRAME CreateFrame SendWho GetNumWhoResults GetWhoInfo SendChatMessage InviteUnit SlashCmdList UIDropDownMenu_SetText UIDropDownMenu_AddButton Print DungeonFormerBlacklist DungeonFormerFrame DungeonFormerDungeonDropdown DungeonFormerClassFilter DungeonFormerScanButton DungeonFormerScrollFrame DungeonFormerScrollChild DungeonFormerAutoInviteCheck DungeonFormerVerboseCheck DungeonFormerFrameCloseButton Dungeons tonumber ipairs pairs string table
 
 DungeonFormer = {}
 
@@ -21,7 +21,7 @@ local playerDB = {}
 local searchResults = {}
 
 -- Dungeons List (sname is for the message)
-local Dungeons = {
+Dungeons = { -- Global scope for dropdown access
     { name = "[13-18] Ragefire Chasm", low = 13, high = 18, sname = "Ragefire Chasm" },
     { name = "[17-24] Wailing Caverns", low = 17, high = 24, sname = "Wailing Caverns" },
     { name = "[17-26] The Deadmines", low = 17, high = 26, sname = "The Deadmines" },
@@ -204,6 +204,15 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
             DebugPrint("Blacklist not found, creating new table.")
             DungeonFormerBlacklist = {}
         end
+        
+        -- Initialize settings database
+        if not DungeonFormer.db then
+            DebugPrint("Settings database not found, creating new table.")
+            DungeonFormer.db = {
+                autoInvite = config.autoInvite,
+                verbose = config.verbose
+            }
+        end
 
         -- Initialize tab switching logic
         DebugPrint("Initializing tab switching logic")
@@ -213,18 +222,46 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         if not DungeonFormer_SelectTab then
             function DungeonFormer_SelectTab(tabIndex)
                 DebugPrint("Switching to tab: " .. tabIndex)
-                -- Hide all tabs
-                if DungeonFormerScanTab then DungeonFormerScanTab:Hide() end
-                if DungeonFormerSettingsTab then DungeonFormerSettingsTab:Hide() end
-                if DungeonFormerBlacklistTab then DungeonFormerBlacklistTab:Hide() end
+                
+                -- Direct frame references - no getglobal needed in WoW 1.12
+                -- Hide all tabs first
+                if DungeonFormerScanTab then 
+                    DungeonFormerScanTab:Hide() 
+                    DebugPrint("DungeonFormerScanTab exists and is now hidden")
+                else
+                    DebugPrint("ERROR: DungeonFormerScanTab is nil")
+                end
+                
+                if DungeonFormerSettingsTab then 
+                    DungeonFormerSettingsTab:Hide() 
+                    DebugPrint("DungeonFormerSettingsTab exists and is now hidden")
+                else
+                    DebugPrint("ERROR: DungeonFormerSettingsTab is nil")
+                end
+                
+                if DungeonFormerBlacklistTab then 
+                    DungeonFormerBlacklistTab:Hide() 
+                    DebugPrint("DungeonFormerBlacklistTab exists and is now hidden")
+                else
+                    DebugPrint("ERROR: DungeonFormerBlacklistTab is nil")
+                end
                 
                 -- Show the selected tab
-                if tabIndex == 1 and DungeonFormerScanTab then 
-                    DungeonFormerScanTab:Show()
-                elseif tabIndex == 2 and DungeonFormerSettingsTab then
-                    DungeonFormerSettingsTab:Show()
-                elseif tabIndex == 3 and DungeonFormerBlacklistTab then
-                    DungeonFormerBlacklistTab:Show()
+                if tabIndex == 1 then
+                    if DungeonFormerScanTab then
+                        DungeonFormerScanTab:Show()
+                        DebugPrint("DungeonFormerScanTab is now shown")
+                    end
+                elseif tabIndex == 2 then
+                    if DungeonFormerSettingsTab then
+                        DungeonFormerSettingsTab:Show()
+                        DebugPrint("DungeonFormerSettingsTab is now shown")
+                    end
+                elseif tabIndex == 3 then
+                    if DungeonFormerBlacklistTab then
+                        DungeonFormerBlacklistTab:Show()
+                        DebugPrint("DungeonFormerBlacklistTab is now shown")
+                    end
                 end
             end
             DebugPrint("Tab switching function created")
@@ -251,19 +288,19 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         end
         -- Checkboxes (Settings Tab)
         if DungeonFormerAutoInviteCheck then
-            DungeonFormerAutoInviteCheck:SetChecked(config.autoInvite)
+            DungeonFormerAutoInviteCheck:SetChecked(DungeonFormer.db.autoInvite)
             DungeonFormerAutoInviteCheck:SetScript("OnClick", function(self)
-                config.autoInvite = self:GetChecked()
-                DungeonFormer:Print("Auto-invite is now " .. (config.autoInvite and "ON" or "OFF"))
-                DebugPrint("Auto-invite checkbox clicked: " .. tostring(config.autoInvite))
+                DungeonFormer.db.autoInvite = self:GetChecked()
+                DungeonFormer:Print("Auto-invite is now " .. (DungeonFormer.db.autoInvite and "ON" or "OFF"))
+                DebugPrint("Auto-invite checkbox clicked: " .. tostring(DungeonFormer.db.autoInvite))
             end)
         end
         if DungeonFormerVerboseCheck then
-            DungeonFormerVerboseCheck:SetChecked(config.verbose)
+            DungeonFormerVerboseCheck:SetChecked(DungeonFormer.db.verbose)
             DungeonFormerVerboseCheck:SetScript("OnClick", function(self)
-                config.verbose = self:GetChecked()
-                DungeonFormer:Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
-                DebugPrint("Verbose checkbox clicked: " .. tostring(config.verbose))
+                DungeonFormer.db.verbose = self:GetChecked()
+                DungeonFormer:Print("Verbose mode is now " .. (DungeonFormer.db.verbose and "ON" or "OFF"))
+                DebugPrint("Verbose checkbox clicked: " .. tostring(DungeonFormer.db.verbose))
             end)
         end
         -- Scan button (Scan Tab)
@@ -305,19 +342,19 @@ function DungeonFormer_OnLoad()
     end
     -- Checkboxes
     if DungeonFormerAutoInviteCheck then
-        DungeonFormerAutoInviteCheck:SetChecked(config.autoInvite)
+        DungeonFormerAutoInviteCheck:SetChecked(DungeonFormer.db.autoInvite)
         DungeonFormerAutoInviteCheck:SetScript("OnClick", function(self)
-            config.autoInvite = self:GetChecked()
-            DungeonFormer:Print("Auto-invite is now " .. (config.autoInvite and "ON" or "OFF"))
-            DebugPrint("Auto-invite checkbox clicked: " .. tostring(config.autoInvite))
+            DungeonFormer.db.autoInvite = self:GetChecked()
+            DungeonFormer:Print("Auto-invite is now " .. (DungeonFormer.db.autoInvite and "ON" or "OFF"))
+            DebugPrint("Auto-invite checkbox clicked: " .. tostring(DungeonFormer.db.autoInvite))
         end)
     end
     if DungeonFormerVerboseCheck then
-        DungeonFormerVerboseCheck:SetChecked(config.verbose)
+        DungeonFormerVerboseCheck:SetChecked(DungeonFormer.db.verbose)
         DungeonFormerVerboseCheck:SetScript("OnClick", function(self)
-            config.verbose = self:GetChecked()
-            DungeonFormer:Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
-            DebugPrint("Verbose checkbox clicked: " .. tostring(config.verbose))
+            DungeonFormer.db.verbose = self:GetChecked()
+            DungeonFormer:Print("Verbose mode is now " .. (DungeonFormer.db.verbose and "ON" or "OFF"))
+            DebugPrint("Verbose checkbox clicked: " .. tostring(DungeonFormer.db.verbose))
         end)
     end
     -- Scan button
@@ -340,43 +377,44 @@ function DungeonFormer_OnLoad()
     DebugPrint("DungeonFormer_OnLoad complete.")
 end
 
-function DungeonFormer_Dropdown_Initialize()
+-- Consolidated dropdown initialization function
+function DungeonFormer_Dropdown_Initialize(self, level)
+    -- Make sure Dungeons table exists and has entries
+    if not Dungeons or #Dungeons == 0 then
+        DebugPrint("ERROR: Dungeons table is empty or nil!")
+        return
+    end
+    
+    DebugPrint("Initializing dropdown with " .. #Dungeons .. " dungeons")
+    
+    -- Clear any existing entries first
+    UIDropDownMenu_ClearAll(self)
+    
     for i, dungeon in ipairs(Dungeons) do
         local info = {}
         info.text = dungeon.name
         info.value = i
-        info.func = function()
-            UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, i)
-            selectedDungeonIndex = i
-            DebugPrint("Dungeon selected: " .. dungeon.name)
+        info.func = function(self)
+            local index = self:GetID()
+            UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, index)
+            UIDropDownMenu_SetText(Dungeons[index].name, DungeonFormerDungeonDropdown)
+            DebugPrint("Dungeon selected: " .. Dungeons[index].name)
+            DungeonFormer.currentDungeon = index
+            return index
         end
-        UIDropDownMenu_AddButton(info)
+        UIDropDownMenu_AddButton(info, level)
     end
 end
 
-
-
-
+-- Wrapper function for backward compatibility
 function DungeonFormer:PopulateDungeonDropdown()
-    DebugPrint("Populating dungeon dropdown...")
-    local function OnSelect(self, arg1, arg2, checked)
-        selectedDungeonIndex = arg1
-        UIDropDownMenu_SetText(DungeonFormerDungeonDropdown, Dungeons[arg1].name)
-        DebugPrint("Dungeon selected: " .. Dungeons[arg1].name)
-    end
-    local function InitializeDropdown(self, level)
-        for i, dungeon in ipairs(Dungeons) do
-            local info = {}
-            info.text = dungeon.name
-            info.arg1 = i
-            info.func = OnSelect
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end
+    DebugPrint("Populating dungeon dropdown via wrapper function...")
     if DungeonFormerDungeonDropdown then
-        UIDropDownMenu_Initialize(DungeonFormerDungeonDropdown, InitializeDropdown)
-        UIDropDownMenu_SetText(DungeonFormerDungeonDropdown, "Select Dungeon")
-        DebugPrint("Dropdown initialized.")
+        UIDropDownMenu_Initialize(DungeonFormerDungeonDropdown, DungeonFormer_Dropdown_Initialize)
+        UIDropDownMenu_SetWidth(DungeonFormerDungeonDropdown, 220)
+        UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, 1)
+        UIDropDownMenu_SetText("Select Dungeon", DungeonFormerDungeonDropdown)
+        DebugPrint("Dropdown initialized successfully.")
     else
         DebugPrint("ERROR: DungeonFormerDungeonDropdown missing!")
     end
@@ -387,15 +425,18 @@ function DungeonFormer:ToggleUI()
         DebugPrint("ERROR: DungeonFormerFrame is nil! UI cannot be toggled.")
         return
     end
-    local state = "Unknown"
-    if DungeonFormerFrame and DungeonFormerFrame.IsShown then
-        state = DungeonFormerFrame:IsShown() and "Shown" or "Hidden"
-    end
-    DebugPrint("ToggleUI called. Current state: " .. state)
-    if DungeonFormerFrame.IsShown and DungeonFormerFrame:IsShown() then
-        if DungeonFormerFrame.Hide then DungeonFormerFrame:Hide() end
+    
+    if DungeonFormerFrame:IsShown() then
+        DungeonFormerFrame:Hide()
+        DebugPrint("UI hidden")
     else
-        if DungeonFormerFrame.Show then DungeonFormerFrame:Show() end
+        DungeonFormerFrame:Show()
+        -- Select the first tab by default when showing the UI
+        if DungeonFormer_SelectTab then
+            DungeonFormer_SelectTab(1)
+            DebugPrint("Selected first tab by default")
+        end
+        DebugPrint("UI shown")
     end
 end
 

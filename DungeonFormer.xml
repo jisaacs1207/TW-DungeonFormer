@@ -2,9 +2,3 @@
     <!-- DungeonFormer now uses a pfUI-inspired, tabbed layout. Main frame and tabs are defined in DungeonFormerTabs.xml. -->
     <Include file="DungeonFormerTabs.xml"/>
 </Ui>
-            <OnDragStop>
-                this:StopMovingOrSizing();
-            </OnDragStop>
-        </Scripts>
-    </Frame>
-</Ui>
