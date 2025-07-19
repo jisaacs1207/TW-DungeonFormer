@@ -361,11 +361,19 @@ function DungeonFormer:PopulateDungeonDropdown()
 end
 
 function DungeonFormer:ToggleUI()
-    DebugPrint("ToggleUI called. Current state: " .. (DungeonFormerFrame:IsShown() and "Shown" or "Hidden"))
-    if DungeonFormerFrame:IsShown() then
-        DungeonFormerFrame:Hide()
+    if not DungeonFormerFrame then
+        DebugPrint("ERROR: DungeonFormerFrame is nil! UI cannot be toggled.")
+        return
+    end
+    local state = "Unknown"
+    if DungeonFormerFrame and DungeonFormerFrame.IsShown then
+        state = DungeonFormerFrame:IsShown() and "Shown" or "Hidden"
+    end
+    DebugPrint("ToggleUI called. Current state: " .. state)
+    if DungeonFormerFrame.IsShown and DungeonFormerFrame:IsShown() then
+        if DungeonFormerFrame.Hide then DungeonFormerFrame:Hide() end
     else
-        DungeonFormerFrame:Show()
+        if DungeonFormerFrame.Show then DungeonFormerFrame:Show() end
     end
 end
 
