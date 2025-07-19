@@ -1,0 +1,9 @@
+## Title: DungeonFormer
+## Interface: 11200
+## Notes: Helps form dungeon groups by scanning /who and messaging players.
+## Author: Windsurf
+## Version: 1.0
+## SavedVariables: DungeonFormerDB
+
+DungeonFormer.xml
+DungeonFormer.lua
