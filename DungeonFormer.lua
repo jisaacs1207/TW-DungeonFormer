@@ -281,19 +281,33 @@ end
 SLASH_DUNGEONFORMER1 = "/dungeonformer"
 SLASH_DUNGEONFORMER2 = "/df"
 
-function SlashCmdList.DUNGEONFORMER(msg, editBox)
-    msg = msg or ""
-    DebugPrint("Slash command received: /df " .. msg)
-    local command, rest = msg:match("([^ ]*) ?(.*)")
-    command = command and string.lower(command) or ""
-    rest = rest and string.lower(rest) or ""
+function SlashCmdList.DUNGEONFORMER(text, editBox)
+    text = text or ""
+    DebugPrint("Slash command received: /df " .. text)
+    local command = ""
+    local rest = ""
+    local spacePos = string.find(text, " ")
+    if spacePos then
+        command = string.sub(text, 1, spacePos - 1)
+        rest = string.sub(text, spacePos + 1)
+    else
+        command = text
+    end
+    command = string.lower(command)
+    rest = string.lower(rest)
 
     if command == "" then
         DungeonFormer:ToggleUI()
     elseif command == "scan" then
-        local dungeonIndex, classes = rest:match("([^ ]*) (.*)")
-        dungeonIndex = dungeonIndex or ""
-        classes = classes or ""
+        local dungeonIndex = ""
+        local classes = ""
+        local spacePos = string.find(rest, " ")
+        if spacePos then
+            dungeonIndex = string.sub(rest, 1, spacePos - 1)
+            classes = string.sub(rest, spacePos + 1)
+        else
+            dungeonIndex = rest
+        end
         DungeonFormer:StartScan(tonumber(dungeonIndex), classes)
     elseif command == "stop" then
         searchResults = {}
