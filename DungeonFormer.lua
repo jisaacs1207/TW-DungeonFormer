@@ -224,6 +224,7 @@ function DungeonFormer_OnLoad()
         UIDropDownMenu_Initialize(DungeonFormerDungeonDropdown, DungeonFormer_Dropdown_Initialize)
         UIDropDownMenu_SetWidth(DungeonFormerDungeonDropdown, 220)
         UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, 1)
+        UIDropDownMenu_SetText("Select Dungeon", DungeonFormerDungeonDropdown)
         DebugPrint("Dropdown initialized on load.")
     else
         DebugPrint("ERROR: DungeonFormerDungeonDropdown missing!")
