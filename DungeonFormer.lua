@@ -64,7 +64,7 @@ function DungeonFormer:Print(message)
 end
 
 -- New function for unconditional debug printing
-local function DebugPrint(message)
+function DebugPrint(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cffeda55f[DF_Debug]|r " .. message)
 end
 
@@ -135,7 +135,8 @@ function DungeonFormer:UpdateResultsList()
                 DungeonFormer:Print("Please select a dungeon first.")
                 return
             end
-            local finalMessage = string.gsub(config.message, "%%[dungeon%%]", currentDungeon.sname)
+            local dungeonName = (currentDungeon and currentDungeon.sname) or "the dungeon"
+            local finalMessage = string.gsub(config.message, "%%[dungeon%%]", dungeonName)
             SendChatMessage(finalMessage, "WHISPER", nil, player.name)
             playerDB[player.name] = {messaged = true, replied = false}
             DungeonFormer:Print("Messaged " .. player.name .. ": '" .. finalMessage .. "'")
@@ -261,17 +262,17 @@ function DungeonFormer:PopulateDungeonDropdown()
     for i, dungeon in ipairs(Dungeons) do
         local info = {}
         info.text = dungeon.name
-        info.func = function() OnSelect(Dungeons, i) end
+        info.func = function() OnSelect(nil, i) end
         UIDropDownMenu_AddButton(info)
     end
 end
 
 function DungeonFormer:ToggleUI()
-    DebugPrint("ToggleUI called. Current state: " .. (ui.frame:IsShown() and "Shown" or "Hidden"))
-    if ui.frame:IsShown() then
-        ui.frame:Hide()
+    DebugPrint("ToggleUI called. Current state: " .. (DungeonFormerFrame:IsShown() and "Shown" or "Hidden"))
+    if DungeonFormerFrame:IsShown() then
+        DungeonFormerFrame:Hide()
     else
-        ui.frame:Show()
+        DungeonFormerFrame:Show()
     end
 end
 
@@ -291,6 +292,8 @@ function SlashCmdList.DUNGEONFORMER(msg, editBox)
         DungeonFormer:ToggleUI()
     elseif command == "scan" then
         local dungeonIndex, classes = rest:match("([^ ]*) (.*)")
+        dungeonIndex = dungeonIndex or ""
+        classes = classes or ""
         DungeonFormer:StartScan(tonumber(dungeonIndex), classes)
     elseif command == "stop" then
         searchResults = {}
