@@ -5,7 +5,7 @@
         <Anchors>
             <Anchor point="CENTER"/>
         </Anchors>
-        <Backdrop bgFile="Interface\ChatFrame\ChatFrameBackground" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
             <BackgroundInsets>
                 <AbsInset left="6" right="6" top="6" bottom="6"/>
             </BackgroundInsets>
@@ -16,8 +16,12 @@
                 <AbsValue val="16"/>
             </EdgeSize>
         </Backdrop>
-        <BackdropColor r="0.07" g="0.07" b="0.07" a="0.95"/>
-        <BackdropBorderColor r="0.2" g="0.2" b="0.2" a="1.0"/>
+        <Scripts>
+            <OnLoad>
+                this:SetBackdropColor(0.07, 0.07, 0.07, 0.95);
+                this:SetBackdropBorderColor(0.2, 0.2, 0.2, 1.0);
+            </OnLoad>
+        </Scripts>
 
         <!-- Title -->
         <Layers>
@@ -142,7 +146,7 @@
                                 <Size>
                                     <AbsDimension x="380" y="200"/>
                                 </Size>
-                                <Backdrop bgFile="Interface\ChatFrame\ChatFrameBackground" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+                                <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
                                     <BackgroundInsets>
                                         <AbsInset left="4" right="4" top="4" bottom="4"/>
                                     </BackgroundInsets>
@@ -153,8 +157,12 @@
                                         <AbsValue val="16"/>
                                     </EdgeSize>
                                 </Backdrop>
-                                <BackdropColor r="0.1" g="0.1" b="0.1" a="0.8"/>
-                                <BackdropBorderColor r="0.4" g="0.4" b="0.4" a="1.0"/>
+                                <Scripts>
+                                    <OnLoad>
+                                        this:SetBackdropColor(0.1, 0.1, 0.1, 0.8);
+                                        this:SetBackdropBorderColor(0.4, 0.4, 0.4, 1.0);
+                                    </OnLoad>
+                                </Scripts>
                             </Frame>
                         </ScrollChild>
                     </ScrollFrame>
