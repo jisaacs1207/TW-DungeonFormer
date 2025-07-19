@@ -24,10 +24,10 @@ local searchResults = {}
 -- They are already globally accessible once defined in XML
 -- Removing _G references to fix the "attempt to index global _G a nil value" error
 
--- Lua functions
-_G.DungeonFormer = DungeonFormer
-_G.DungeonFormer_Dropdown_Initialize = DungeonFormer_Dropdown_Initialize
-_G.DungeonFormer_SelectTab = DungeonFormer_SelectTab
+-- In Vanilla WoW, functions are automatically global
+-- No need to assign them to _G
+-- DungeonFormer is already defined globally
+-- DungeonFormer_Dropdown_Initialize and DungeonFormer_SelectTab are already global
 
 -- Dungeons List (sname is for the message)
 Dungeons = { -- Global scope for dropdown access
