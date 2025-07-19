@@ -236,18 +236,24 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
             DebugPrint("Verbose checkbox clicked: " .. tostring(config.verbose))
         end)
 
-        -- Set button scripts
-        ui.scanButton:SetScript("OnClick", function()
-            DebugPrint("Scan button clicked.")
-            local classes = ui.classFilter:GetText()
-            DungeonFormer:StartScan(selectedDungeonIndex, classes)
-        end)
-
-        -- Note to linter: DungeonFormerFrameCloseButton is also defined in the XML.
-        DungeonFormerFrameCloseButton:SetScript("OnClick", function()
-            DebugPrint("Close button clicked.")
-            DungeonFormerFrame:Hide()
-        end)
+        if DungeonFormerScanButton then
+            DungeonFormerScanButton:SetScript("OnClick", function()
+                local dungeonIndex = selectedDungeonIndex
+                if not dungeonIndex then
+                    DungeonFormer:Print("Please select a dungeon first.")
+                    return
+                end
+                local classes = DungeonFormerClassFilter and DungeonFormerClassFilter:GetText() or ""
+                DungeonFormer:StartScan(dungeonIndex, classes)
+                DungeonFormerFrame:Show()
+                DungeonFormerScrollFrame:Show()
+                DungeonFormerScrollChild:Show()
+                DebugPrint("Scan button clicked. Scan started for dungeon index: " .. tostring(dungeonIndex) .. ", classes: " .. classes)
+            end)
+            DebugPrint("Scan button handler set.")
+        else
+            DebugPrint("ERROR: DungeonFormerScanButton missing!")
+        end
 
         DungeonFormer:Print("Addon loaded. Type /df to toggle the UI.")
         DebugPrint("Addon loaded.")
@@ -266,17 +272,27 @@ end)
 
 
 function DungeonFormer:PopulateDungeonDropdown()
-    -- Note to linter: UIDropDownMenu_SetText and UIDropDownMenu_AddButton are global functions provided by the WoW API.
-    local function OnSelect(self, index)
-        selectedDungeonIndex = index
-        UIDropDownMenu_SetText(ui.dungeonDropdown, Dungeons[index].name)
+    DebugPrint("Populating dungeon dropdown...")
+    local function OnSelect(self, arg1, arg2, checked)
+        selectedDungeonIndex = arg1
+        UIDropDownMenu_SetText(DungeonFormerDungeonDropdown, Dungeons[arg1].name)
+        DebugPrint("Dungeon selected: " .. Dungeons[arg1].name)
     end
-
-    for i, dungeon in ipairs(Dungeons) do
-        local info = {}
-        info.text = dungeon.name
-        info.func = function() OnSelect(nil, i) end
-        UIDropDownMenu_AddButton(info)
+    local function InitializeDropdown(self, level)
+        for i, dungeon in ipairs(Dungeons) do
+            local info = {}
+            info.text = dungeon.name
+            info.arg1 = i
+            info.func = OnSelect
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+    if DungeonFormerDungeonDropdown then
+        UIDropDownMenu_Initialize(DungeonFormerDungeonDropdown, InitializeDropdown)
+        UIDropDownMenu_SetText(DungeonFormerDungeonDropdown, "Select Dungeon")
+        DebugPrint("Dropdown initialized.")
+    else
+        DebugPrint("ERROR: DungeonFormerDungeonDropdown missing!")
     end
 end
 
