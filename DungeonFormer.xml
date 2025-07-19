@@ -94,28 +94,18 @@
             </ScrollFrame>
 
             <!-- Settings Checkboxes -->
-            <CheckButton name="DungeonFormerAutoInviteCheck" inherits="UICheckButtonTemplate">
+            <CheckButton name="DungeonFormerAutoInviteCheck" inherits="UICheckButtonTemplate" text="Auto-Invite">
                 <Size x="20" y="20"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="DungeonFormerScrollFrame" relativePoint="BOTTOMLEFT" x="10" y="-10"/>
                 </Anchors>
-                <Scripts>
-                    <OnLoad>
-                        _G[this:GetName() .. "Text"]:SetText("Auto-Invite");
-                    </OnLoad>
-                </Scripts>
             </CheckButton>
 
-            <CheckButton name="DungeonFormerVerboseCheck" inherits="UICheckButtonTemplate">
+            <CheckButton name="DungeonFormerVerboseCheck" inherits="UICheckButtonTemplate" text="Verbose Mode">
                 <Size x="20" y="20"/>
                 <Anchors>
                     <Anchor point="LEFT" relativeTo="DungeonFormerAutoInviteCheck" relativePoint="RIGHT" x="100" y="0"/>
                 </Anchors>
-                <Scripts>
-                    <OnLoad>
-                        _G[this:GetName() .. "Text"]:SetText("Verbose Mode");
-                    </OnLoad>
-                </Scripts>
             </CheckButton>
 
         </Frames>

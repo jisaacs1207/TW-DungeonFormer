@@ -106,7 +106,8 @@ function DungeonFormer:ProcessWhoList()
         end
     end
     DungeonFormer:UpdateResultsList()
-    DebugPrint("Updated results list with " .. #searchResults .. " players.")
+    local resultCount = #searchResults
+    DebugPrint("Updated results list with " .. resultCount .. " players.")
 end
 
 function DungeonFormer:UpdateResultsList()
