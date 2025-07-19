@@ -1,8 +1,7 @@
 --- DungeonFormer Main File ---
 
 -- Addon namespace
--- luacheck: globals UIParent DEFAULT_CHAT_FRAME CreateFrame SendWho GetNumWhoResults GetWhoInfo SendChatMessage InviteUnit SlashCmdList UIDropDownMenu_SetText UIDropDownMenu_AddButton
--- luacheck: globals DungeonFormerFrame DungeonFormerDungeonDropdown DungeonFormerClassFilter DungeonFormerScanButton DungeonFormerScrollFrame DungeonFormerScrollChild DungeonFormerAutoInviteCheck DungeonFormerVerboseCheck DungeonFormerFrameCloseButton
+-- luacheck: globals UIParent DEFAULT_CHAT_FRAME CreateFrame SendWho GetNumWhoResults GetWhoInfo SendChatMessage InviteUnit SlashCmdList UIDropDownMenu_SetText UIDropDownMenu_AddButton Print DungeonFormerBlacklist DungeonFormerFrame DungeonFormerDungeonDropdown DungeonFormerClassFilter DungeonFormerScanButton DungeonFormerScrollFrame DungeonFormerScrollChild DungeonFormerAutoInviteCheck DungeonFormerVerboseCheck DungeonFormerFrameCloseButton tonumber ipairs pairs string table
 
 DungeonFormer = {}
 
@@ -18,7 +17,7 @@ local config = {
 
 -- Player database
 local playerDB = {}
-local blacklist = {}
+
 local searchResults = {}
 
 -- Dungeons List (sname is for the message)
@@ -58,16 +57,22 @@ local ui = {}
 
 -- Utility Functions
 -- Note to linter: DEFAULT_CHAT_FRAME is a global provided by the WoW API.
-local function Print(msg)
+function DungeonFormer:Print(message)
     if config.verbose then
-        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffDungeonFormer:|r " .. msg)
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99DungeonFormer:|r " .. message)
     end
+end
+
+-- New function for unconditional debug printing
+local function DebugPrint(message)
+    DEFAULT_CHAT_FRAME:AddMessage("|cffeda55f[DF_Debug]|r " .. message)
 end
 
 -- Core Functions
 function DungeonFormer:StartScan(dungeonIndex, classes)
+    DebugPrint("StartScan called with DungeonIndex: " .. tostring(dungeonIndex) .. ", Classes: " .. tostring(classes))
     if not dungeonIndex or not Dungeons[dungeonIndex] then
-        Print("Invalid dungeon index. Please select a dungeon from the dropdown.")
+        DungeonFormer:Print("Invalid dungeon index. Please select a dungeon from the dropdown.")
         return
     end
 
@@ -80,29 +85,35 @@ function DungeonFormer:StartScan(dungeonIndex, classes)
         whoQuery = whoQuery .. " c-\"" .. classes .. "\""
     end
 
-    Print("Starting scan for " .. currentDungeon.name .. ".")
+    DungeonFormer:Print("Starting scan for " .. currentDungeon.name .. ".")
     searchResults = {} -- Clear previous results
     DungeonFormer:UpdateResultsList() -- Clear the UI
     -- Note to linter: SendWho is a global function provided by the WoW API.
     SendWho(whoQuery)
+    DebugPrint("Sent /who query: " .. whoQuery)
 end
 
 function DungeonFormer:ProcessWhoList()
     -- Note to linter: GetNumWhoResults and GetWhoInfo are global functions provided by the WoW API.
-    Print("Processing " .. GetNumWhoResults() .. " players from /who list.")
-    for i=1, GetNumWhoResults() do
+    DebugPrint("WHO_LIST_UPDATE event received.")
+    local numResults = GetNumWhoResults()
+    DungeonFormer:Print("Processing " .. numResults .. " players from /who list.")
+    for i=1, numResults do
         local name, _, level, _, class, zone = GetWhoInfo(i)
-        if name and not playerDB[name] and not blacklist[name] then
+        if name and not playerDB[name] and not DungeonFormerBlacklist[name] then
             table.insert(searchResults, {name=name, level=level, class=class, zone=zone})
+            DebugPrint("Added player to search results: " .. name .. " (Level " .. level .. " " .. class .. ")")
         end
     end
-    self:UpdateResultsList()
+    DungeonFormer:UpdateResultsList()
+    DebugPrint("Updated results list with " .. #searchResults .. " players.")
 end
 
 function DungeonFormer:UpdateResultsList()
     -- Clear previous results from scroll frame
     -- Note to linter: DungeonFormerScrollChild is the child frame of the ScrollFrame defined in XML.
     DungeonFormerScrollChild:SetHeight(0)
+    DebugPrint("Cleared previous results from scroll frame.")
 
     for i, player in ipairs(searchResults) do
         local yPos = -((i-1) * 30)
@@ -111,6 +122,7 @@ function DungeonFormer:UpdateResultsList()
         local infoText = DungeonFormerScrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
         infoText:SetText(string.format("%s - Lvl %d %s", player.name, player.level, player.class))
         infoText:SetPoint("TOPLEFT", 20, yPos - 10)
+        DebugPrint("Created player info text for " .. player.name)
 
         -- Whisper Button
         -- Note to linter: CreateFrame is a global function from the WoW API to create UI elements.
@@ -120,13 +132,14 @@ function DungeonFormer:UpdateResultsList()
         whisperButton:SetPoint("TOPRIGHT", -165, yPos - 5)
         whisperButton:SetScript("OnClick", function()
             if not currentDungeon then
-                Print("Please select a dungeon first.")
+                DungeonFormer:Print("Please select a dungeon first.")
                 return
             end
+            DebugPrint("Whisper button clicked for: " .. player.name)
             local finalMessage = string.gsub(config.message, "%%[dungeon%%]", currentDungeon.sname)
             SendChatMessage(finalMessage, "WHISPER", nil, player.name)
             playerDB[player.name] = {messaged = true, replied = false}
-            Print("Messaged " .. player.name .. ": '" .. finalMessage .. "'")
+            DungeonFormer:Print("Messaged " .. player.name .. ": '" .. finalMessage .. "'")
         end)
 
         -- Invite Button
@@ -135,8 +148,9 @@ function DungeonFormer:UpdateResultsList()
         inviteButton:SetSize(70, 22)
         inviteButton:SetPoint("LEFT", whisperButton, "RIGHT", 5, 0)
         inviteButton:SetScript("OnClick", function()
+            DebugPrint("Invite button clicked for: " .. player.name)
             InviteUnit(player.name)
-            Print("Invited " .. player.name .. " to the group.")
+            DungeonFormer:Print("Invited " .. player.name .. " to the group.")
         end)
 
         -- Blacklist Button
@@ -145,8 +159,9 @@ function DungeonFormer:UpdateResultsList()
         blacklistButton:SetSize(70, 22)
         blacklistButton:SetPoint("LEFT", inviteButton, "RIGHT", 5, 0)
         blacklistButton:SetScript("OnClick", function()
-            blacklist[player.name] = true
-            Print(player.name .. " has been blacklisted.")
+            DebugPrint("Blacklist button clicked for: " .. player.name)
+            DungeonFormerBlacklist[player.name] = true
+            DungeonFormer:Print(player.name .. " has been blacklisted.")
             -- Remove from search results and refresh the list
             for j, p in ipairs(searchResults) do
                 if p.name == player.name then
@@ -158,6 +173,7 @@ function DungeonFormer:UpdateResultsList()
         end)
 
         DungeonFormerScrollChild:SetHeight(i * 30)
+        DebugPrint("Updated scroll frame height to " .. (i * 30))
     end
 end
 
@@ -170,12 +186,13 @@ eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" and ... == "DungeonFormer" then
-        -- Load saved variables
-        -- Note to linter: DungeonFormerDB is a global variable created by the WoW client for SavedVariables.
-        if DungeonFormerDB == nil then
-            DungeonFormerDB = { blacklist = {} }
+        DebugPrint("ADDON_LOADED event received for DungeonFormer.")
+        -- Load saved variables. DungeonFormerBlacklist is our global table defined in the .toc file.
+        -- The game client will automatically load it. We just need to ensure it's a table if it's the first time.
+        if DungeonFormerBlacklist == nil then
+            DebugPrint("Blacklist not found, creating new table.")
+            DungeonFormerBlacklist = {}
         end
-        blacklist = DungeonFormerDB.blacklist
 
         -- Initialize UI elements
         -- Note to linter: The following globals are frames and widgets defined in DungeonFormer.xml
@@ -189,6 +206,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
         -- Populate the dropdown
         DungeonFormer:PopulateDungeonDropdown()
+        DebugPrint("Populated dungeon dropdown.")
 
         -- Sync checkboxes with config
         ui.autoInviteCheck:SetChecked(config.autoInvite)
@@ -196,32 +214,38 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
         ui.autoInviteCheck:SetScript("OnClick", function(self)
             config.autoInvite = self:GetChecked()
-            Print("Auto-invite is now " .. (config.autoInvite and "ON" or "OFF"))
+            DungeonFormer:Print("Auto-invite is now " .. (config.autoInvite and "ON" or "OFF"))
+            DebugPrint("Auto-invite checkbox clicked: " .. tostring(config.autoInvite))
         end)
 
         ui.verboseCheck:SetScript("OnClick", function(self)
             config.verbose = self:GetChecked()
-            Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
+            DungeonFormer:Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
+            DebugPrint("Verbose checkbox clicked: " .. tostring(config.verbose))
         end)
 
         -- Set button scripts
         ui.scanButton:SetScript("OnClick", function()
+            DebugPrint("Scan button clicked.")
             local classes = ui.classFilter:GetText()
             DungeonFormer:StartScan(selectedDungeonIndex, classes)
         end)
 
         -- Note to linter: DungeonFormerFrameCloseButton is also defined in the XML.
         DungeonFormerFrameCloseButton:SetScript("OnClick", function()
+            DebugPrint("Close button clicked.")
             DungeonFormerFrame:Hide()
         end)
 
-        Print("Addon loaded. Type /df to toggle the UI.")
+        DungeonFormer:Print("Addon loaded. Type /df to toggle the UI.")
+        DebugPrint("Addon loaded.")
     elseif event == "WHO_LIST_UPDATE" then
+        DebugPrint("WHO_LIST_UPDATE event handled.")
         DungeonFormer:ProcessWhoList()
     elseif event == "CHAT_MSG_WHISPER" then
         local message, author = ...
         if playerDB[author] and playerDB[author].messaged then
-            Print("|cff00ff00Reply from " .. author .. ":|r " .. message)
+            DungeonFormer:Print("|cff00ff00Reply from " .. author .. ":|r " .. message)
             playerDB[author].replied = true
         end
     end
@@ -245,6 +269,7 @@ function DungeonFormer:PopulateDungeonDropdown()
 end
 
 function DungeonFormer:ToggleUI()
+    DebugPrint("ToggleUI called. Current state: " .. (ui.frame:IsShown() and "Shown" or "Hidden"))
     if ui.frame:IsShown() then
         ui.frame:Hide()
     else
@@ -258,7 +283,8 @@ SLASH_DUNGEONFORMER1 = "/dungeonformer"
 SLASH_DUNGEONFORMER2 = "/df"
 
 function SlashCmdList.DUNGEONFORMER(msg, editBox)
-    local command, rest = msg:match("([^ ]*) (.*)")
+    DebugPrint("Slash command received: /df " .. msg)
+    local command, rest = msg:match("([^ ]*) ?(.*)")
     command = command and string.lower(command) or ""
     rest = rest and string.lower(rest) or ""
 
@@ -270,37 +296,53 @@ function SlashCmdList.DUNGEONFORMER(msg, editBox)
     elseif command == "stop" then
         searchResults = {}
         DungeonFormer:UpdateResultsList()
-        Print("All messaging stopped and results cleared.")
+        DungeonFormer:Print("All messaging stopped and results cleared.")
     elseif command == "msg" then
         config.message = rest
-        Print("New message set to: '" .. rest .. "'")
+        DungeonFormer:Print("New message set to: '" .. rest .. "'")
     elseif command == "list" then
-        Print("Available Dungeons:")
+        DungeonFormer:Print("Available Dungeons:")
         for i, d in ipairs(Dungeons) do
             DEFAULT_CHAT_FRAME:AddMessage(i .. ": " .. d.name)
         end
     elseif command == "blacklist" then
         if rest and rest ~= "" then
-            blacklist[rest] = true
-            Print(rest .. " has been blacklisted.")
+            DungeonFormerBlacklist[rest] = true
+            DungeonFormer:Print(rest .. " has been blacklisted.")
         else
-            Print("Usage: /df blacklist [playername]")
+            DungeonFormer:Print("Blacklisted Players:")
+            for name, _ in pairs(DungeonFormerBlacklist) do
+                DungeonFormer:Print("- " .. name)
+            end
         end
+    elseif command == "unblacklist" then
+        if rest and rest ~= "" then
+            DungeonFormerBlacklist[rest] = nil
+            DungeonFormer:Print(rest .. " has been unblacklisted.")
+        else
+            DungeonFormer:Print("Usage: /df unblacklist [playername]")
+        end
+    elseif command == "clearblacklist" then
+        DungeonFormerBlacklist = {}
+        DungeonFormer:Print("Blacklist cleared.")
     elseif command == "clear" then
         playerDB = {}
-        Print("Player database cleared.")
+        DungeonFormer:Print("Player database cleared.")
     elseif command == "verbose" then
         config.verbose = not config.verbose
-        Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
+        DungeonFormer:Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
     else
-        Print("--- DungeonFormer Help ---")
-        Print("/df - Toggles the main UI.")
-        Print("/df scan [index] [class] - Scans for players. e.g., /df scan 5 warrior")
-        Print("/df msg [your message] - Sets the whisper message. Use [dungeon] as a placeholder.")
-        Print("/df list - Lists available dungeons and their index.")
-        Print("/df blacklist [player] - Adds a player to the blacklist.")
-        Print("/df clear - Clears the list of messaged players.")
-        Print("/df verbose - Toggles addon messages.")
-        Print("/df stop - Stops the current messaging queue.")
+        DungeonFormer:Print("--- DungeonFormer Help ---")
+        DungeonFormer:Print("/df - Toggles the main UI.")
+        DungeonFormer:Print("/df scan [dungeon_index] [classes] - Scans for players.")
+        DungeonFormer:Print("/df stop - Stops scanning and clears results.")
+        DungeonFormer:Print("/df msg [message] - Sets the whisper message.")
+        DungeonFormer:Print("/df list - Lists available dungeons with their index.")
+        DungeonFormer:Print("/df blacklist [name] - Adds a player to the blacklist.")
+        DungeonFormer:Print("/df blacklist - Shows the blacklist.")
+        DungeonFormer:Print("/df unblacklist [name] - Removes a player from the blacklist.")
+        DungeonFormer:Print("/df clearblacklist - Clears the entire blacklist.")
+        DungeonFormer:Print("/df clear - Clears the temporary player database.")
+        DungeonFormer:Print("/df verbose - Toggles verbose messages.")
     end
 end
