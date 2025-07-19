@@ -5,5 +5,7 @@
 ## Version: 1.0
 ## SavedVariables: DungeonFormerBlacklist
 
+DungeonFormerTabs.xml
+DungeonFormerTabs.lua
 DungeonFormer.xml
 DungeonFormer.lua

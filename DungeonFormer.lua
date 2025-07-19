@@ -20,37 +20,9 @@ local playerDB = {}
 
 local searchResults = {}
 
--- Globals declaration for WoW 1.12 compatibility
--- WoW UI frames (defined in XML)
-_G.DungeonFormerFrame = DungeonFormerFrame
-_G.DungeonFormerScanTab = DungeonFormerScanTab
-_G.DungeonFormerSettingsTab = DungeonFormerSettingsTab
-_G.DungeonFormerBlacklistTab = DungeonFormerBlacklistTab
-_G.DungeonFormerScrollFrame = DungeonFormerScrollFrame
-_G.DungeonFormerScrollChild = DungeonFormerScrollChild
-_G.DungeonFormerDungeonDropdown = DungeonFormerDungeonDropdown
-_G.DungeonFormerClassFilter = DungeonFormerClassFilter
-_G.DungeonFormerScanButton = DungeonFormerScanButton
-_G.DungeonFormerAutoInviteCheck = DungeonFormerAutoInviteCheck
-_G.DungeonFormerVerboseCheck = DungeonFormerVerboseCheck
-
--- WoW API functions
-_G.SendWho = SendWho
-_G.GetNumWhoResults = GetNumWhoResults
-_G.GetWhoInfo = GetWhoInfo
-_G.SendChatMessage = SendChatMessage
-_G.InviteUnit = InviteUnit
-_G.CreateFrame = CreateFrame
-_G.DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
-
--- UIDropDownMenu functions
-_G.UIDropDownMenu_Initialize = UIDropDownMenu_Initialize
-_G.UIDropDownMenu_SetWidth = UIDropDownMenu_SetWidth
-_G.UIDropDownMenu_SetSelectedID = UIDropDownMenu_SetSelectedID
-_G.UIDropDownMenu_SetText = UIDropDownMenu_SetText
-_G.UIDropDownMenu_AddButton = UIDropDownMenu_AddButton
-_G.UIDropDownMenu_ClearAll = UIDropDownMenu_ClearAll
-_G.UIDropDownMenu_GetSelectedID = UIDropDownMenu_GetSelectedID
+-- In Vanilla WoW, we don't need to explicitly assign UI elements to _G
+-- They are already globally accessible once defined in XML
+-- Removing _G references to fix the "attempt to index global _G a nil value" error
 
 -- Lua functions
 _G.DungeonFormer = DungeonFormer
