@@ -364,7 +364,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
             UIDropDownMenu_Initialize(DungeonFormerDungeonDropdown, DungeonFormer_Dropdown_Initialize)
             UIDropDownMenu_SetWidth(DungeonFormerDungeonDropdown, 220)
             UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, 1)
-            UIDropDownMenu_SetText("Select Dungeon", DungeonFormerDungeonDropdown)
+            UIDropDownMenu_SetText(DungeonFormerDungeonDropdown, "Select Dungeon")
             DebugPrint("Dropdown initialized on load.")
         else
             DebugPrint("ERROR: DungeonFormerDungeonDropdown missing!")
@@ -466,12 +466,12 @@ local dropdown_info = {}
 -- Consolidated dropdown initialization function
 function DungeonFormer_Dropdown_Initialize(self, level)
     -- Make sure Dungeons table exists and has entries
-    if not Dungeons or #Dungeons == 0 then
+    if not Dungeons or table.getn(Dungeons) == 0 then
         DebugPrint("ERROR: Dungeons table is empty or nil!")
         return
     end
     
-    DebugPrint("Initializing dropdown with " .. #Dungeons .. " dungeons")
+    DebugPrint("Initializing dropdown with " .. table.getn(Dungeons) .. " dungeons")
     
     -- Clear any existing entries first
     UIDropDownMenu_ClearAll(self)
@@ -545,6 +545,39 @@ function DungeonFormer:ToggleUI()
             DebugPrint("ERROR: Scroll frame components missing!")
         end
     end
+end
+
+-- Initialize addon
+function DungeonFormer:OnInitialize()
+    -- Initialize settings if they don't exist
+    if not DungeonFormer.db then
+        DungeonFormer.db = {}
+    end
+    
+    -- Set defaults if not already set
+    if DungeonFormer.db.autoInvite == nil then
+        DungeonFormer.db.autoInvite = config.autoInvite
+    end
+    
+    if DungeonFormer.db.verbose == nil then
+        DungeonFormer.db.verbose = config.verbose
+    end
+    
+    -- Initialize blacklist if it doesn't exist
+    if not DungeonFormerBlacklist then
+        DungeonFormerBlacklist = {}
+    end
+    
+    -- Register slash commands
+    self:RegisterSlashCommands()
+    
+    -- Register events
+    self:RegisterEvents()
+    
+    -- Initialize UI
+    self:InitializeUI()
+    
+    DungeonFormer:Print("DungeonFormer addon loaded. Type /df to open the UI.")
 end
 
 -- Slash Command Handler

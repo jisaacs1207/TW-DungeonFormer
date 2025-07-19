@@ -193,8 +193,8 @@
                                 DebugPrint("Auto-Invite set to: " .. tostring(DungeonFormer.db.autoInvite));
                             </OnClick>
                             <OnShow>
-                                if DungeonFormer.db and DungeonFormer.db.autoInvite then
-                                    this:SetChecked(DungeonFormer.db.autoInvite);
+                                if DungeonFormer.db then
+                                    this:SetChecked(DungeonFormer.db.autoInvite == true);
                                 end
                             </OnShow>
                         </Scripts>
@@ -210,8 +210,8 @@
                                 DebugPrint("Verbose Mode set to: " .. tostring(DungeonFormer.db.verbose));
                             </OnClick>
                             <OnShow>
-                                if DungeonFormer.db and DungeonFormer.db.verbose then
-                                    this:SetChecked(DungeonFormer.db.verbose);
+                                if DungeonFormer.db then
+                                    this:SetChecked(DungeonFormer.db.verbose == true);
                                 end
                             </OnShow>
                         </Scripts>
