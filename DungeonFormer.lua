@@ -106,27 +106,26 @@ function DungeonFormer:ProcessWhoList()
         end
     end
     DungeonFormer:UpdateResultsList()
-    local resultCount = #searchResults
-    DebugPrint("Updated results list with " .. resultCount .. " players.")
 end
 
 function DungeonFormer:UpdateResultsList()
-    -- Clear previous results from scroll frame
-    -- Note to linter: DungeonFormerScrollChild is the child frame of the ScrollFrame defined in XML.
-    DungeonFormerScrollChild:SetHeight(0)
-    DebugPrint("Cleared previous results from scroll frame.")
+    -- Clear previous results from scroll frame by hiding all of its children
+    -- We iterate backwards to avoid issues with modifying the table while iterating
+    for i = DungeonFormerScrollChild:GetNumChildren(), 1, -1 do
+        local child = select(i, DungeonFormerScrollChild:GetChildren())
+        child:Hide()
+    end
 
+    -- Create new UI elements for the current search results
     for i, player in ipairs(searchResults) do
-        local yPos = -((i-1) * 30)
+        local yPos = -((i - 1) * 30)
 
         -- Player info text
         local infoText = DungeonFormerScrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
         infoText:SetText(string.format("%s - Lvl %d %s", player.name, player.level, player.class))
         infoText:SetPoint("TOPLEFT", 20, yPos - 10)
-        DebugPrint("Created player info text for " .. player.name)
 
         -- Whisper Button
-        -- Note to linter: CreateFrame is a global function from the WoW API to create UI elements.
         local whisperButton = CreateFrame("Button", nil, DungeonFormerScrollChild, "UIPanelButtonTemplate")
         whisperButton:SetText("Whisper")
         whisperButton:SetSize(70, 22)
@@ -136,7 +135,6 @@ function DungeonFormer:UpdateResultsList()
                 DungeonFormer:Print("Please select a dungeon first.")
                 return
             end
-            DebugPrint("Whisper button clicked for: " .. player.name)
             local finalMessage = string.gsub(config.message, "%%[dungeon%%]", currentDungeon.sname)
             SendChatMessage(finalMessage, "WHISPER", nil, player.name)
             playerDB[player.name] = {messaged = true, replied = false}
@@ -149,7 +147,6 @@ function DungeonFormer:UpdateResultsList()
         inviteButton:SetSize(70, 22)
         inviteButton:SetPoint("LEFT", whisperButton, "RIGHT", 5, 0)
         inviteButton:SetScript("OnClick", function()
-            DebugPrint("Invite button clicked for: " .. player.name)
             InviteUnit(player.name)
             DungeonFormer:Print("Invited " .. player.name .. " to the group.")
         end)
@@ -160,10 +157,9 @@ function DungeonFormer:UpdateResultsList()
         blacklistButton:SetSize(70, 22)
         blacklistButton:SetPoint("LEFT", inviteButton, "RIGHT", 5, 0)
         blacklistButton:SetScript("OnClick", function()
-            DebugPrint("Blacklist button clicked for: " .. player.name)
             DungeonFormerBlacklist[player.name] = true
             DungeonFormer:Print(player.name .. " has been blacklisted.")
-            -- Remove from search results and refresh the list
+            -- Remove from current search results and refresh the list
             for j, p in ipairs(searchResults) do
                 if p.name == player.name then
                     table.remove(searchResults, j)
@@ -172,10 +168,11 @@ function DungeonFormer:UpdateResultsList()
             end
             DungeonFormer:UpdateResultsList()
         end)
-
-        DungeonFormerScrollChild:SetHeight(i * 30)
-        DebugPrint("Updated scroll frame height to " .. (i * 30))
     end
+
+    -- Set the scrollable area height based on the number of results
+    local resultCount = table.getn(searchResults)
+    DungeonFormerScrollChild:SetHeight(resultCount * 30)
 end
 
 -- Event Handling & Main Frame
