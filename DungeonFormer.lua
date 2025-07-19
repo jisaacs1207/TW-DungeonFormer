@@ -82,7 +82,7 @@ function DungeonFormer:StartScan(dungeonIndex, classes)
     
     local whoQuery = config.startLevel .. "-" .. config.endLevel
     if classes and classes ~= "" then
-        whoQuery = whoQuery .. " c-\"" .. classes .. "\""
+        whoQuery = whoQuery .. " c-" .. classes
     end
 
     DungeonFormer:Print("Starting scan for " .. currentDungeon.name .. ".")
@@ -111,9 +111,14 @@ end
 function DungeonFormer:UpdateResultsList()
     -- Clear previous results from scroll frame by hiding all of its children
     -- We iterate backwards to avoid issues with modifying the table while iterating
+    if not DungeonFormerScrollChild then
+        DebugPrint("ERROR: DungeonFormerScrollChild is missing!")
+        return
+    end
     for i = DungeonFormerScrollChild:GetNumChildren(), 1, -1 do
         local child = select(i, DungeonFormerScrollChild:GetChildren())
         child:Hide()
+        child:SetParent(nil)
     end
 
     -- Create new UI elements for the current search results
@@ -124,6 +129,7 @@ function DungeonFormer:UpdateResultsList()
         local infoText = DungeonFormerScrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
         infoText:SetText(string.format("%s - Lvl %d %s", player.name, player.level, player.class))
         infoText:SetPoint("TOPLEFT", 20, yPos - 10)
+        infoText:Show()
 
         -- Whisper Button
         local whisperButton = CreateFrame("Button", nil, DungeonFormerScrollChild, "UIPanelButtonTemplate")
@@ -141,6 +147,7 @@ function DungeonFormer:UpdateResultsList()
             playerDB[player.name] = {messaged = true, replied = false}
             DungeonFormer:Print("Messaged " .. player.name .. ": '" .. finalMessage .. "'")
         end)
+        whisperButton:Show()
 
         -- Invite Button
         local inviteButton = CreateFrame("Button", nil, DungeonFormerScrollChild, "UIPanelButtonTemplate")
@@ -151,6 +158,7 @@ function DungeonFormer:UpdateResultsList()
             InviteUnit(player.name)
             DungeonFormer:Print("Invited " .. player.name .. " to the group.")
         end)
+        inviteButton:Show()
 
         -- Blacklist Button
         local blacklistButton = CreateFrame("Button", nil, DungeonFormerScrollChild, "UIPanelButtonTemplate")
@@ -169,7 +177,12 @@ function DungeonFormer:UpdateResultsList()
             end
             DungeonFormer:UpdateResultsList()
         end)
+        blacklistButton:Show()
+        DebugPrint("UI row created for player: " .. player.name)
     end
+    if DungeonFormerScrollFrame then DungeonFormerScrollFrame:Show() end
+    DungeonFormerScrollChild:Show()
+    DebugPrint("Results UI updated and shown.")
 
     -- Set the scrollable area height based on the number of results
     local resultCount = table.getn(searchResults)
@@ -298,6 +311,9 @@ function SlashCmdList.DUNGEONFORMER(text, editBox)
 
     if command == "" then
         DungeonFormer:ToggleUI()
+        DungeonFormerFrame:Show()
+        if DungeonFormerScrollFrame then DungeonFormerScrollFrame:Show() end
+        if DungeonFormerScrollChild then DungeonFormerScrollChild:Show() end
     elseif command == "scan" then
         local dungeonIndex = ""
         local classes = ""
@@ -309,6 +325,9 @@ function SlashCmdList.DUNGEONFORMER(text, editBox)
             dungeonIndex = rest
         end
         DungeonFormer:StartScan(tonumber(dungeonIndex), classes)
+        DungeonFormerFrame:Show()
+        if DungeonFormerScrollFrame then DungeonFormerScrollFrame:Show() end
+        if DungeonFormerScrollChild then DungeonFormerScrollChild:Show() end
     elseif command == "stop" then
         searchResults = {}
         DungeonFormer:UpdateResultsList()
