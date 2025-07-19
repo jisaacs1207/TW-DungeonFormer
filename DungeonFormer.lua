@@ -120,7 +120,7 @@ function DungeonFormer:StartScan(dungeonID, classFilter)
     end
     
     -- Show the scan tab
-    self:ShowTab(1)
+    DungeonFormer_SelectTab(1)
     
     -- Make sure scroll frame is visible
     if DungeonFormerScrollFrame then
