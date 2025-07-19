@@ -281,6 +281,7 @@ SLASH_DUNGEONFORMER1 = "/dungeonformer"
 SLASH_DUNGEONFORMER2 = "/df"
 
 function SlashCmdList.DUNGEONFORMER(msg, editBox)
+    msg = msg or ""
     DebugPrint("Slash command received: /df " .. msg)
     local command, rest = msg:match("([^ ]*) ?(.*)")
     command = command and string.lower(command) or ""
