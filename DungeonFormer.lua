@@ -1,7 +1,7 @@
 --- DungeonFormer Main File ---
 
 -- Addon namespace
--- luacheck: globals UIParent DEFAULT_CHAT_FRAME CreateFrame SendWho GetNumWhoResults GetWhoInfo SendChatMessage InviteUnit SlashCmdList UIDropDownMenu_SetText UIDropDownMenu_AddButton Print DungeonFormerBlacklist DungeonFormerFrame DungeonFormerDungeonDropdown DungeonFormerClassFilter DungeonFormerScanButton DungeonFormerScrollFrame DungeonFormerScrollChild DungeonFormerAutoInviteCheck DungeonFormerVerboseCheck DungeonFormerFrameCloseButton Dungeons tonumber ipairs pairs string table
+-- luacheck: globals UIParent DEFAULT_CHAT_FRAME CreateFrame SendWho GetNumWhoResults GetWhoInfo SendChatMessage InviteUnit SlashCmdList UIDropDownMenu_SetText UIDropDownMenu_SetWidth UIDropDownMenu_Initialize UIDropDownMenu_AddButton UIDropDownMenu_GetSelectedID UIDropDownMenu_SetSelectedID UIDropDownMenu_ClearAll Print DungeonFormerBlacklist DungeonFormerFrame DungeonFormerDungeonDropdown DungeonFormerClassFilter DungeonFormerScanButton DungeonFormerScrollFrame DungeonFormerScrollChild DungeonFormerAutoInviteCheck DungeonFormerVerboseCheck DungeonFormerFrameCloseButton DungeonFormerScanTab DungeonFormerSettingsTab DungeonFormerBlacklistTab Dungeons tonumber ipairs pairs string table
 
 DungeonFormer = {}
 
@@ -19,6 +19,43 @@ local config = {
 local playerDB = {}
 
 local searchResults = {}
+
+-- Globals declaration for WoW 1.12 compatibility
+-- WoW UI frames (defined in XML)
+_G.DungeonFormerFrame = DungeonFormerFrame
+_G.DungeonFormerScanTab = DungeonFormerScanTab
+_G.DungeonFormerSettingsTab = DungeonFormerSettingsTab
+_G.DungeonFormerBlacklistTab = DungeonFormerBlacklistTab
+_G.DungeonFormerScrollFrame = DungeonFormerScrollFrame
+_G.DungeonFormerScrollChild = DungeonFormerScrollChild
+_G.DungeonFormerDungeonDropdown = DungeonFormerDungeonDropdown
+_G.DungeonFormerClassFilter = DungeonFormerClassFilter
+_G.DungeonFormerScanButton = DungeonFormerScanButton
+_G.DungeonFormerAutoInviteCheck = DungeonFormerAutoInviteCheck
+_G.DungeonFormerVerboseCheck = DungeonFormerVerboseCheck
+
+-- WoW API functions
+_G.SendWho = SendWho
+_G.GetNumWhoResults = GetNumWhoResults
+_G.GetWhoInfo = GetWhoInfo
+_G.SendChatMessage = SendChatMessage
+_G.InviteUnit = InviteUnit
+_G.CreateFrame = CreateFrame
+_G.DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
+
+-- UIDropDownMenu functions
+_G.UIDropDownMenu_Initialize = UIDropDownMenu_Initialize
+_G.UIDropDownMenu_SetWidth = UIDropDownMenu_SetWidth
+_G.UIDropDownMenu_SetSelectedID = UIDropDownMenu_SetSelectedID
+_G.UIDropDownMenu_SetText = UIDropDownMenu_SetText
+_G.UIDropDownMenu_AddButton = UIDropDownMenu_AddButton
+_G.UIDropDownMenu_ClearAll = UIDropDownMenu_ClearAll
+_G.UIDropDownMenu_GetSelectedID = UIDropDownMenu_GetSelectedID
+
+-- Lua functions
+_G.DungeonFormer = DungeonFormer
+_G.DungeonFormer_Dropdown_Initialize = DungeonFormer_Dropdown_Initialize
+_G.DungeonFormer_SelectTab = DungeonFormer_SelectTab
 
 -- Dungeons List (sname is for the message)
 Dungeons = { -- Global scope for dropdown access
@@ -69,28 +106,58 @@ function DebugPrint(message)
 end
 
 -- Core Functions
-function DungeonFormer:StartScan(dungeonIndex, classes)
-    DebugPrint("StartScan called with DungeonIndex: " .. tostring(dungeonIndex) .. ", Classes: " .. tostring(classes))
-    if not dungeonIndex or not Dungeons[dungeonIndex] then
-        DungeonFormer:Print("Invalid dungeon index. Please select a dungeon from the dropdown.")
+function DungeonFormer:StartScan(dungeonID, classFilter)
+    DebugPrint("StartScan called with dungeonID: " .. tostring(dungeonID) .. ", classFilter: " .. tostring(classFilter))
+    
+    -- Validate dungeon selection
+    if not dungeonID or not Dungeons[dungeonID] then
+        self:Print("Please select a dungeon first!")
         return
     end
-
-    currentDungeon = Dungeons[dungeonIndex]
-    config.startLevel = currentDungeon.low
-    config.endLevel = currentDungeon.high
     
-    local whoQuery = config.startLevel .. "-" .. config.endLevel
-    if classes and classes ~= "" then
-        whoQuery = whoQuery .. " c-" .. classes
+    -- Clear previous results
+    self:ClearResults()
+    
+    -- Get the selected dungeon
+    local currentDungeon = Dungeons[dungeonID]
+    if not currentDungeon then
+        self:Print("Please select a dungeon first.")
+        return
     end
-
-    DungeonFormer:Print("Starting scan for " .. currentDungeon.name .. ".")
-    searchResults = {} -- Clear previous results
-    DungeonFormer:UpdateResultsList() -- Clear the UI
-    -- Note to linter: SendWho is a global function provided by the WoW API.
-    SendWho(whoQuery)
-    DebugPrint("Sent /who query: " .. whoQuery)
+    
+    -- Store the current dungeon for later use
+    self.currentDungeon = currentDungeon
+    
+    self:Print("Scanning for players for " .. currentDungeon.name .. "...")
+    
+    -- Build the who command
+    local whoCmd = tostring(currentDungeon.low) .. "-" .. tostring(currentDungeon.high)
+    
+    -- Add class filter if provided
+    if classFilter and classFilter ~= "" then
+        whoCmd = whoCmd .. " c-" .. classFilter
+    end
+    
+    -- Execute the who command
+    DebugPrint("Executing /who " .. whoCmd)
+    SendWho(whoCmd)
+    
+    -- Make sure UI is visible
+    if DungeonFormerFrame then
+        DungeonFormerFrame:Show()
+    end
+    
+    -- Show the scan tab
+    self:ShowTab(1)
+    
+    -- Make sure scroll frame is visible
+    if DungeonFormerScrollFrame then
+        DungeonFormerScrollFrame:Show()
+    end
+    
+    if DungeonFormerScrollChild then
+        DungeonFormerScrollChild:Show()
+    end
 end
 
 function DungeonFormer:ProcessWhoList()
@@ -106,6 +173,22 @@ function DungeonFormer:ProcessWhoList()
         end
     end
     DungeonFormer:UpdateResultsList()
+end
+
+function DungeonFormer:ClearResults()
+    -- Clear search results table
+    searchResults = {}
+    
+    -- Clear UI elements if they exist
+    if DungeonFormerScrollChild then
+        local children = {DungeonFormerScrollChild:GetChildren()}
+        for _, child in ipairs(children) do
+            child:Hide()
+            child:SetParent(nil)
+        end
+    else
+        DebugPrint("WARNING: DungeonFormerScrollChild is missing when trying to clear results")
+    end
 end
 
 function DungeonFormer:UpdateResultsList()
@@ -377,6 +460,9 @@ function DungeonFormer_OnLoad()
     DebugPrint("DungeonFormer_OnLoad complete.")
 end
 
+-- Reusable info table for dropdown to reduce memory garbage
+local dropdown_info = {}
+
 -- Consolidated dropdown initialization function
 function DungeonFormer_Dropdown_Initialize(self, level)
     -- Make sure Dungeons table exists and has entries
@@ -391,18 +477,22 @@ function DungeonFormer_Dropdown_Initialize(self, level)
     UIDropDownMenu_ClearAll(self)
     
     for i, dungeon in ipairs(Dungeons) do
-        local info = {}
-        info.text = dungeon.name
-        info.value = i
-        info.func = function(self)
+        -- Clear the table for reuse instead of creating a new one each time
+        for k in pairs(dropdown_info) do
+            dropdown_info[k] = nil
+        end
+        
+        dropdown_info.text = dungeon.name
+        dropdown_info.value = i
+        dropdown_info.func = function(self)
             local index = self:GetID()
             UIDropDownMenu_SetSelectedID(DungeonFormerDungeonDropdown, index)
-            UIDropDownMenu_SetText(Dungeons[index].name, DungeonFormerDungeonDropdown)
+            UIDropDownMenu_SetText(DungeonFormerDungeonDropdown, Dungeons[index].name)
             DebugPrint("Dungeon selected: " .. Dungeons[index].name)
-            DungeonFormer.currentDungeon = index
+            DungeonFormer.currentDungeon = Dungeons[index]
             return index
         end
-        UIDropDownMenu_AddButton(info, level)
+        UIDropDownMenu_AddButton(dropdown_info, level)
     end
 end
 
@@ -423,20 +513,37 @@ end
 function DungeonFormer:ToggleUI()
     if not DungeonFormerFrame then
         DebugPrint("ERROR: DungeonFormerFrame is nil! UI cannot be toggled.")
+        DungeonFormer:Print("UI error: Unable to show interface. Please reload your UI with /reload.")
         return
     end
     
     if DungeonFormerFrame:IsShown() then
         DungeonFormerFrame:Hide()
-        DebugPrint("UI hidden")
+        DebugPrint("UI hidden successfully.")
     else
         DungeonFormerFrame:Show()
-        -- Select the first tab by default when showing the UI
-        if DungeonFormer_SelectTab then
-            DungeonFormer_SelectTab(1)
-            DebugPrint("Selected first tab by default")
+        DebugPrint("UI shown successfully.")
+        
+        -- Initialize dropdown if needed
+        if DungeonFormerDungeonDropdown then
+            DungeonFormer:PopulateDungeonDropdown()
+        else
+            DebugPrint("ERROR: DungeonFormerDungeonDropdown is nil! Cannot populate dropdown.")
         end
-        DebugPrint("UI shown")
+        
+        -- Select the first tab by default
+        if type(DungeonFormer_SelectTab) == "function" then
+            DungeonFormer_SelectTab(1)
+        else
+            DebugPrint("ERROR: DungeonFormer_SelectTab function is not defined!")
+        end
+        
+        -- Verify scroll frame is properly set up
+        if DungeonFormerScrollFrame and DungeonFormerScrollChild then
+            DebugPrint("Scroll frame components verified.")
+        else
+            DebugPrint("ERROR: Scroll frame components missing!")
+        end
     end
 end
 
@@ -444,6 +551,41 @@ end
 -- Note to linter: SlashCmdList is a global table provided by the WoW API.
 SLASH_DUNGEONFORMER1 = "/dungeonformer"
 SLASH_DUNGEONFORMER2 = "/df"
+
+-- Function to reset addon state and attempt to recover from errors
+function DungeonFormer:ResetAddonState()
+    DebugPrint("Resetting addon state...")
+    
+    -- Reset core variables
+    DungeonFormer.currentDungeon = 1
+    DungeonFormer.scanning = false
+    searchResults = {}
+    
+    -- Ensure settings table exists
+    if not DungeonFormer.db then
+        DungeonFormer.db = {
+            autoInvite = false,
+            verbose = false,
+            -- Add other default settings here
+        }
+        DebugPrint("Created new settings table with defaults")
+    end
+    
+    -- Attempt to reinitialize UI
+    if DungeonFormer_OnLoad then 
+        DebugPrint("Calling DungeonFormer_OnLoad() to reinitialize UI")
+        DungeonFormer_OnLoad() 
+    end
+    
+    -- Attempt to reinitialize dropdown
+    if DungeonFormerDungeonDropdown then
+        DebugPrint("Reinitializing dropdown menu")
+        DungeonFormer:PopulateDungeonDropdown()
+    end
+    
+    DungeonFormer:Print("Addon state has been reset. Try using /df again.")
+    return true
+end
 
 function SlashCmdList.DUNGEONFORMER(text, editBox)
     text = text or ""
@@ -460,32 +602,26 @@ function SlashCmdList.DUNGEONFORMER(text, editBox)
     command = string.lower(command)
     rest = string.lower(rest)
 
-    if command == "" then
+    if command == "reset" then
+        -- Reset addon state to recover from errors
+        DungeonFormer:ResetAddonState()
+        return
+    elseif command == "" then
         -- Try to show the UI; if frames are missing, attempt to reinitialize
+        if not DungeonFormerFrame then
+            DebugPrint("ERROR: DungeonFormerFrame is nil! Attempting to recover...")
+            DungeonFormer:Print("UI error detected. Attempting to recover...")
+            DungeonFormer:ResetAddonState()
+            
+            -- Check if recovery worked
+            if not DungeonFormerFrame then
+                DungeonFormer:Print("Recovery failed. Please use /reload to fix the UI.")
+                DungeonFormer:Print("You can still use /df scan [dungeon] [classes] to scan for players.")
+                return
+            end
+        end
+        
         DungeonFormer:ToggleUI()
-        local uiReady = DungeonFormerFrame and DungeonFormerFrame.Show and DungeonFormerScrollFrame and DungeonFormerScrollFrame.Show and DungeonFormerScrollChild and DungeonFormerScrollChild.Show
-        if not uiReady then
-            DebugPrint("UI frames missing after ToggleUI. Attempting to reinitialize UI via DungeonFormer_OnLoad().")
-            if DungeonFormer_OnLoad then DungeonFormer_OnLoad() end
-        end
-        -- Try again to show frames after reinit
-        if DungeonFormerFrame and DungeonFormerFrame.Show then
-            DungeonFormerFrame:Show()
-        else
-            DebugPrint("ERROR: DungeonFormerFrame is still nil or missing Show method after reinit!")
-        end
-        if DungeonFormerScrollFrame and DungeonFormerScrollFrame.Show then
-            DungeonFormerScrollFrame:Show()
-        else
-            DebugPrint("ERROR: DungeonFormerScrollFrame is still nil or missing Show method after reinit!")
-        end
-        if DungeonFormerScrollChild and DungeonFormerScrollChild.Show then
-            DungeonFormerScrollChild:Show()
-        else
-            DebugPrint("ERROR: DungeonFormerScrollChild is still nil or missing Show method after reinit!")
-            -- Optionally, create a minimal fallback frame here
-        end
-        -- The command proceeds regardless of UI frame state
 
     elseif command == "scan" then
         local dungeonIndex = ""
@@ -526,31 +662,36 @@ function SlashCmdList.DUNGEONFORMER(text, editBox)
     elseif command == "unblacklist" then
         if rest and rest ~= "" then
             DungeonFormerBlacklist[rest] = nil
-            DungeonFormer:Print(rest .. " has been unblacklisted.")
+            DungeonFormer:Print(rest .. " has been removed from the blacklist.")
         else
-            DungeonFormer:Print("Usage: /df unblacklist [playername]")
+            DungeonFormer:Print("Usage: /df unblacklist [name]")
         end
     elseif command == "clearblacklist" then
         DungeonFormerBlacklist = {}
-        DungeonFormer:Print("Blacklist cleared.")
+        DungeonFormer:Print("Blacklist has been cleared.")
     elseif command == "clear" then
-        playerDB = {}
-        DungeonFormer:Print("Player database cleared.")
+        searchResults = {}
+        DungeonFormer:UpdateResultsList()
+        DungeonFormer:Print("Temporary player database cleared.")
     elseif command == "verbose" then
-        config.verbose = not config.verbose
-        DungeonFormer:Print("Verbose mode is now " .. (config.verbose and "ON" or "OFF"))
+        DungeonFormer.db.verbose = not DungeonFormer.db.verbose
+        DungeonFormer:Print("Verbose mode is now " .. (DungeonFormer.db.verbose and "ON" or "OFF"))
+        if DungeonFormerVerboseCheck then
+            DungeonFormerVerboseCheck:SetChecked(DungeonFormer.db.verbose)
+        end
     else
-        DungeonFormer:Print("--- DungeonFormer Help ---")
-        DungeonFormer:Print("/df - Toggles the main UI.")
-        DungeonFormer:Print("/df scan [dungeon_index] [classes] - Scans for players.")
-        DungeonFormer:Print("/df stop - Stops scanning and clears results.")
-        DungeonFormer:Print("/df msg [message] - Sets the whisper message.")
-        DungeonFormer:Print("/df list - Lists available dungeons with their index.")
-        DungeonFormer:Print("/df blacklist [name] - Adds a player to the blacklist.")
-        DungeonFormer:Print("/df blacklist - Shows the blacklist.")
-        DungeonFormer:Print("/df unblacklist [name] - Removes a player from the blacklist.")
-        DungeonFormer:Print("/df clearblacklist - Clears the entire blacklist.")
-        DungeonFormer:Print("/df clear - Clears the temporary player database.")
-        DungeonFormer:Print("/df verbose - Toggles verbose messages.")
+        -- Show help
+        DungeonFormer:Print("DungeonFormer Commands:")
+        DungeonFormer:Print("/df - Opens the main UI")
+        DungeonFormer:Print("/df scan [dungeon] [classes] - Scans for players for the specified dungeon")
+        DungeonFormer:Print("/df stop - Stops all messaging and clears results")
+        DungeonFormer:Print("/df list - Lists available dungeons")
+        DungeonFormer:Print("/df msg [message] - Sets custom message")
+        DungeonFormer:Print("/df blacklist - Shows the blacklist")
+        DungeonFormer:Print("/df unblacklist [name] - Removes a player from the blacklist")
+        DungeonFormer:Print("/df clearblacklist - Clears the entire blacklist")
+        DungeonFormer:Print("/df clear - Clears the temporary player database")
+        DungeonFormer:Print("/df verbose - Toggles verbose messages")
+        DungeonFormer:Print("/df reset - Resets addon state to recover from errors")
     end
 end
