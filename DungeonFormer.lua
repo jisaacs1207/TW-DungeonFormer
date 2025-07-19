@@ -205,17 +205,29 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
             DungeonFormerBlacklist = {}
         end
 
-        -- Load tab switching logic
-        if DungeonFormerTabsLoaded == nil then
-            DebugPrint("Loading DungeonFormerTabs.lua for tab logic.")
-            RunScript([[LoadAddOn("DungeonFormerTabs")]])
-            DungeonFormerTabsLoaded = true
-        end
-        if DungeonFormer_OnLoadTabs then
-            DungeonFormer_OnLoadTabs()
-            DebugPrint("Tabs initialized with DungeonFormer_OnLoadTabs().")
-        else
-            DebugPrint("ERROR: DungeonFormer_OnLoadTabs missing!")
+        -- Initialize tab switching logic
+        DebugPrint("Initializing tab switching logic")
+        -- No need to load a separate addon - DungeonFormerTabs.xml is already included via DungeonFormer.xml
+        
+        -- Define the tab switching function if it doesn't exist
+        if not DungeonFormer_SelectTab then
+            function DungeonFormer_SelectTab(tabIndex)
+                DebugPrint("Switching to tab: " .. tabIndex)
+                -- Hide all tabs
+                if DungeonFormerScanTab then DungeonFormerScanTab:Hide() end
+                if DungeonFormerSettingsTab then DungeonFormerSettingsTab:Hide() end
+                if DungeonFormerBlacklistTab then DungeonFormerBlacklistTab:Hide() end
+                
+                -- Show the selected tab
+                if tabIndex == 1 and DungeonFormerScanTab then 
+                    DungeonFormerScanTab:Show()
+                elseif tabIndex == 2 and DungeonFormerSettingsTab then
+                    DungeonFormerSettingsTab:Show()
+                elseif tabIndex == 3 and DungeonFormerBlacklistTab then
+                    DungeonFormerBlacklistTab:Show()
+                end
+            end
+            DebugPrint("Tab switching function created")
         end
 
         -- Initialize UI elements for new tabbed layout
